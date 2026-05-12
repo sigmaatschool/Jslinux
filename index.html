@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Linux VM with Internet</title>
+    <!-- Loads your local uploaded file -->
+    <script src="public/libv86.js"></script>
+</head>
+<body style="background: black; margin: 0;">
+    <div id="screen_container">
+        <div style="white-space: pre; font-family: monospace; color: white;">
+            Booting Linux... If this stays blank, check your file names.
+        </div>
+        <canvas style="display: none"></canvas>
+    </div>
+
+    <script>
+    window.onload = function() {
+        var emulator = new V86Starter({
+            // Core Engine Files (Local)
+            wasm_path: "public/v86.wasm",
+            bios: { url: "public/seabios.bin" },
+            
+            // OS Image (Replace with your uploaded ISO or BIN name)
+            bzimage: { url: "public/buildroot-bzimage.bin" }, 
+            
+            // Resources
+            memory_size: 128 * 1024 * 1024, // 128MB
+            autostart: true,
+            
+            // Networking Proxy (The "Internet" bridge)
+            network_relay_url: "wss://relay.widgetry.org/",
+            
+            screen_container: document.getElementById("screen_container"),
+        });
+
+        // Debug: Log to console if it fails
+        console.log("Emulator initialized. Attempting boot...");
+    };
+    </script>
+</body>
+</html>
