@@ -5,36 +5,77 @@
     <!-- Loads your local uploaded file -->
     <script src="public/libv86.js"></script>
 </head>
-<body style="background: black; margin: 0;">
-    <div id="screen_container">
-        <div style="white-space: pre; font-family: monospace; color: white;">
-            Booting Linux... If this stays blank, check your file names.
+<body style="background: black; margin: 0; color: white; font-family: Arial, sans-serif;">
+    <div style="padding: 16px; max-width: 900px; margin: auto;">
+        <h1 style="color: #fff;">Linux VM with Local ISO</h1>
+        <p style="color: #ccc;">Upload a Linux ISO or disk image below, then click Boot. This page uses only local files and no external CDN resources.</p>
+
+        <div style="margin-bottom: 16px;">
+            <label for="isoFile" style="display: block; margin-bottom: 8px;">Select ISO / disk image</label>
+            <input id="isoFile" type="file" accept=".iso,.img,.bin" style="width: 100%; max-width: 400px;" />
         </div>
-        <canvas style="display: none"></canvas>
+
+        <div style="margin-bottom: 16px;">
+            <label for="relayUrl" style="display: block; margin-bottom: 8px;">Network relay WSS URL</label>
+            <input id="relayUrl" type="text" value="wss://relay.widgetry.org/" style="width: 100%; max-width: 400px;" />
+            <small style="color: #999; display: block; margin-top: 6px;">Change this if your network requires a different relay endpoint.</small>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <button id="bootButton" style="padding: 10px 16px; font-size: 16px; cursor: pointer;">Boot local image</button>
+        </div>
+
+        <div id="screen_container" style="background: black; border: 1px solid #444; min-height: 360px; display: flex; align-items: center; justify-content: center; color: white;">
+            <div id="bootMessage" style="white-space: pre; font-family: monospace;">No image selected. Choose a local ISO and click Boot.</div>
+        </div>
     </div>
 
     <script>
     window.onload = function() {
-        var emulator = new V86Starter({
-            // Core Engine Files (Local)
-            wasm_path: "public/v86.wasm",
-            bios: { url: "public/seabios.bin" },
-            
-            // OS Image (Replace with your uploaded ISO or BIN name)
-            bzimage: { url: "public/buildroot-bzimage.bin" }, 
-            
-            // Resources
-            memory_size: 128 * 1024 * 1024, // 128MB
-            autostart: true,
-            
-            // Networking Proxy (The "Internet" bridge)
-            network_relay_url: "wss://relay.widgetry.org/",
-            
-            screen_container: document.getElementById("screen_container"),
-        });
+        var isoFileInput = document.getElementById("isoFile");
+        var relayUrlInput = document.getElementById("relayUrl");
+        var bootButton = document.getElementById("bootButton");
+        var bootMessage = document.getElementById("bootMessage");
+        var screenContainer = document.getElementById("screen_container");
+        var currentObjectUrl = null;
+        var emulator = null;
 
-        // Debug: Log to console if it fails
-        console.log("Emulator initialized. Attempting boot...");
+        function stopCurrentEmulator() {
+            if (emulator && typeof emulator.stop === "function") {
+                emulator.stop();
+            }
+            emulator = null;
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+        }
+
+        bootButton.addEventListener("click", function() {
+            var file = isoFileInput.files[0];
+            if (!file) {
+                bootMessage.textContent = "Please choose a local ISO or disk image file first.";
+                return;
+            }
+
+            stopCurrentEmulator();
+            bootMessage.textContent = "Initializing local VM...";
+
+            currentObjectUrl = URL.createObjectURL(file);
+            emulator = new V86Starter({
+                wasm_path: "v86.wasm",
+                bios: { url: "seabios.bin" },
+                cdrom: { url: currentObjectUrl },
+                memory_size: 128 * 1024 * 1024,
+                autostart: true,
+                screen_container: screenContainer,
+                network_relay_url: relayUrlInput.value.trim() || "wss://relay.widgetry.org/",
+                disable_keyboard: false,
+                disable_mouse: false
+            });
+
+            console.log("Emulator initialized with local image:", file.name);
+        });
     };
     </script>
 </body>
